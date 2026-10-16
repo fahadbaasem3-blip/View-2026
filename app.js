@@ -2,8 +2,8 @@
 const units = [
  {floor:'الأول',deed:'760002422710',no:'1/1',cat:'A1',front:'شمالية - جار',titleArea:'159.22',actual:167.53,status:'مباع',price:null},
  {floor:'الأول',deed:'960002422714',no:'1/2',cat:'B1',front:'شمالية - شرقية',titleArea:'164.96',actual:173.10,status:'متاح',price:1150000},
- {floor:'الأول',deed:'560002422712',no:'1/3',cat:'C1',front:'شرقية - ممر',titleArea:'156.6',actual:163.33,status:'متاح',price:830000},
- {floor:'الأول',deed:'860002422708',no:'1/4',cat:'D1',front:'شرقية - ممر',titleArea:'167.3',actual:173.81,status:'متاح',price:885000},
+ {floor:'الأول',deed:'560002422712',no:'1/3',cat:'C1',front:'شرقية - ممر',titleArea:'156.6',actual:163.33,status:'محجوز',price:830000},
+ {floor:'الأول',deed:'860002422708',no:'1/4',cat:'D1',front:'شرقية - ممر',titleArea:'167.3',actual:173.81,status:'مباع',price:null},
  {floor:'الأول',deed:'360002422706',no:'1/5',cat:'E1',front:'شرقية - جار',titleArea:'149.76',actual:167.53,status:'متاح',price:820000},
  {floor:'الأول',deed:'560002422704',no:'1/6',cat:'F1',front:'داخلي',titleArea:'154.77',actual:163.33,status:'مباع',price:null},
  {floor:'الثاني',deed:'560002422719',no:'2/1',cat:'A2',front:'شمالية - جار',titleArea:'159.22',actual:167.53,status:'مباع',price:null},
@@ -27,38 +27,37 @@ const floorsOrder=['الأول','الثاني','الثالث','الملحق'];
 const money=n=>n?new Intl.NumberFormat('en-US').format(n):'—';
 const available=units.filter(x=>x.status==='متاح');
 const sold=units.filter(x=>x.status==='مباع');
+const reserved=units.filter(x=>x.status==='محجوز');
 const remainingValue=available.reduce((s,x)=>s+(x.price||0),0);
 const minPrice=Math.min(...available.map(x=>x.price));
 const maxPrice=Math.max(...available.map(x=>x.price));
 
 document.getElementById('overview').innerHTML=`
- <article class="stat primary"><div class="label">حالة المخزون الآن</div><div class="value">${available.length} متاح <span style="color:#6d736d;font-size:18px">/ ${units.length}</span></div><div class="sub">نسبة التوفر ${Math.round(available.length/units.length*100)}% · نظرة مباشرة لفريق المبيعات</div></article>
+ <article class="stat primary"><div class="label">حالة الوحدات الآن</div><div class="value">${available.length} متاح <span style="color:#6d736d;font-size:18px">/ ${units.length}</span></div><div class="sub">نسبة التوفر ${Math.round(available.length/units.length*100)}% · نظرة مباشرة لفريق المبيعات</div></article>
  <article class="stat"><div class="label">الوحدات المتاحة</div><div class="value" style="color:var(--green)">${available.length}</div><div class="mini sub"><i class="dot available"></i>جاهزة للعرض والبيع</div></article>
- <article class="stat"><div class="label">المباع / غير المتاح</div><div class="value">${sold.length}</div><div class="mini sub"><i class="dot sold"></i>لا تظهر ضمن خيارات العميل</div></article>
- <article class="stat"><div class="label">قيمة المخزون المتاح</div><div class="value">${(remainingValue/1000000).toFixed(3)}M</div><div class="sub">ر.س · حسب الأسعار الحالية</div></article>
- <article class="stat"><div class="label">نطاق أسعار المتاح</div><div class="value" style="font-size:20px">${money(minPrice)} – ${money(maxPrice)}</div><div class="sub">ر.س</div></article>`;
+ <article class="stat"><div class="label">المباع / غير المتاح</div><div class="value">${sold.length + reserved.length}</div><div class="mini sub"><i class="dot sold"></i>لا تظهر ضمن خيارات العميل</div></article>`;
 
 const floorsEl=document.getElementById('floors');
 function render(){
  floorsEl.innerHTML=floorsOrder.map(f=>{
-   const arr=units.filter(u=>u.floor===f), av=arr.filter(u=>u.status==='متاح').length, so=arr.length-av;
+   const arr=units.filter(u=>u.floor===f), av=arr.filter(u=>u.status==='متاح').length, so=arr.filter(u=>u.status==='مباع').length, re=arr.filter(u=>u.status==='محجوز').length;
    const value=arr.filter(u=>u.status==='متاح').reduce((s,u)=>s+(u.price||0),0);
    return `<section class="floor" data-floor-wrap="${f}">
     <div class="floor-head"><div class="floor-title"><h2>الدور ${f}</h2><span class="floor-badge">${av} متاح من ${arr.length}</span></div>
-    <div class="floor-summary"><span>متاح: <b style="color:var(--green)">${av}</b></span><span>مباع: <b>${so}</b></span><span>قيمة المتاح: <b>${money(value)} ر.س</b></span></div></div>
+    <div class="floor-summary"><span>متاح: <b style="color:var(--green)">${av}</b></span><span>مباع: <b>${so}</b></span><span>محجوز: <b>${re}</b></span><span>قيمة المتاح: <b>${money(value)} ر.س</b></span></div></div>
     <div class="units">${arr.map(unitCard).join('')}</div>
    </section>`
  }).join('');
  document.querySelectorAll('.unit').forEach(el=>el.addEventListener('click',()=>openModal(Number(el.dataset.index))));
 }
 function unitCard(u){
- const i=units.indexOf(u), cls=u.status==='متاح'?'available':'sold';
+ const i=units.indexOf(u), cls=u.status==='متاح'?'available':u.status==='محجوز'?'sold reserved':'sold';
  return `<article class="unit ${cls}" data-index="${i}" data-status="${u.status}" data-floor="${u.floor}" data-search="${u.no} ${u.cat} ${u.deed} ${u.front}">
    <div class="unit-top"><div class="unit-no">${u.no}</div><div class="category">${u.cat}</div></div>
-   <div class="status">${u.status==='متاح'?'متاح للبيع':'مباع'}</div>
-   <div class="price">${u.status==='متاح'?money(u.price):'غير متاح'} ${u.status==='متاح'?'<small>ر.س</small>':''}</div>
+   <div class="status">${u.status==='متاح'?'متاح للبيع':u.status==='محجوز'?'محجوز':'مباعة'}</div>
+   <div class="price">${u.status==='متاح'?money(u.price):u.status==='محجوز'?'محجوز':'مباعة'} ${u.status==='متاح'?'<small>ر.س</small>':''}</div>
    <div class="meta">${u.front}<br>${u.actual.toFixed(2)} م² على الطبيعة</div>
-   <div class="sold-stamp">غير متاح</div>
+   <div class="sold-stamp">${u.status==='محجوز'?'محجوز':'مباعة'}</div>
  </article>`;
 }
 render();
@@ -83,15 +82,15 @@ document.getElementById('search').addEventListener('input',e=>{state.q=e.target.
 
 const modal=document.getElementById('modal'), modalCard=document.getElementById('modalCard');
 function openModal(i){
- const u=units[i], cls=u.status==='متاح'?'available':'sold';
- modalCard.innerHTML=`<div class="modal-head"><div><h3>الشقة ${u.no} · ${u.cat}</h3><div class="detail-status ${cls}">${u.status==='متاح'?'● متاحة للبيع الآن':'● مباعة / غير متاحة'}</div></div><button class="close" onclick="closeModal()">✕</button></div>
+ const u=units[i], cls=u.status==='متاح'?'available':u.status==='محجوز'?'sold reserved':'sold';
+ modalCard.innerHTML=`<div class="modal-head"><div><h3>الشقة ${u.no} · ${u.cat}</h3><div class="detail-status ${cls}">${u.status==='متاح'?'● متاحة للبيع الآن':u.status==='محجوز'?'● محجوز':'● مباعة'}</div></div><button class="close" onclick="closeModal()">✕</button></div>
  <div class="details">
   <div class="detail"><span>الدور</span><strong>${u.floor}</strong></div><div class="detail"><span>الواجهة</span><strong>${u.front}</strong></div>
   <div class="detail"><span>المساحة حسب الصك</span><strong>${u.titleArea} م²</strong></div><div class="detail"><span>المساحة على الطبيعة</span><strong>${u.actual.toFixed(2)} م²</strong></div>
   <div class="detail" style="grid-column:1/-1"><span>رقم الصك</span><strong dir="ltr">${u.deed}</strong></div>
  </div>
- <div class="modal-price"><span>${u.status==='متاح'?'سعر البيع الحالي':'حالة الوحدة'}</span><strong>${u.status==='متاح'?money(u.price)+' ر.س':'غير متاحة للبيع'}</strong></div>
- <div class="actions"><button class="action primary" ${u.status==='مباع'?'disabled style="opacity:.45"':''} onclick="copyUnit(${i})">نسخ تفاصيل الوحدة</button><button class="action secondary" onclick="closeModal()">إغلاق</button></div>`;
+ <div class="modal-price"><span>${u.status==='متاح'?'سعر البيع الحالي':'حالة الوحدة'}</span><strong>${u.status==='متاح'?money(u.price)+' ر.س':u.status==='محجوز'?'محجوز':'مباعة'}</strong></div>
+ <div class="actions"><button class="action primary" ${u.status!=='متاح'?'disabled style="opacity:.45"':''} onclick="copyUnit(${i})">نسخ تفاصيل الوحدة</button><button class="action secondary" onclick="closeModal()">إغلاق</button></div>`;
  modal.classList.add('show');
 }
 function closeModal(){modal.classList.remove('show')}
